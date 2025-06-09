@@ -19,6 +19,7 @@ local config = {
     close = "ga",
     undo = "gr",
   },
+  confirm_revert = true, -- Whether to confirm before reverting
 }
 
 local function foreach_buf(cb)
@@ -93,13 +94,15 @@ end
 
 -- Revert to previous undo state
 function Diff.revert_to_previous_undo()
-  local confirm = vim.fn.confirm(
-    "Revert to previous undo state?",
-    "&Yes\n&No", 2, "Warning"
-  )
-  if confirm ~= 1 then
-    vim.notify("Revert cancelled.", vim.log.levels.INFO)
-    return
+  if config.confirm_revert then
+    local confirm = vim.fn.confirm(
+      "Revert to previous undo state?",
+      "&Yes\n&No", 2, "Warning"
+    )
+    if confirm ~= 1 then
+      vim.notify("Revert cancelled.", vim.log.levels.INFO)
+      return
+    end
   end
 
   vim.api.nvim_set_current_win(state.window_ids.curr) -- Switch back to original buffer
