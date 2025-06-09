@@ -1,9 +1,8 @@
 local config = {
   commit_model = "gpt-4.1",
   main_model = "claude-4",
+  send_to_aider_api = require("nvim_aider").api.send_to_terminal
 }
-
-local send_to_terminal = require("nvim_aider").api.send_to_terminal
 
 local CommitMessage = {}
 
@@ -33,12 +32,12 @@ function CommitMessage.create()
   but focus on the main changes made in the staged files.\n
   Do not generate any files.\n
   ]]
-  send_to_terminal("/model " .. config.commit_model)
-  send_to_terminal("/ask")
-  send_to_terminal(prefix .. staged_diff)
-  send_to_terminal("/copy")
-  send_to_terminal("/model " .. config.main_model)
-  send_to_terminal("/code")
+  config.send_to_aider_api("/model " .. config.commit_model)
+  config.send_to_aider_api("/ask")
+  config.send_to_aider_api(prefix .. staged_diff)
+  config.send_to_aider_api("/copy")
+  config.send_to_aider_api("/model " .. config.main_model)
+  config.send_to_aider_api("/code")
 end
 
 return CommitMessage
