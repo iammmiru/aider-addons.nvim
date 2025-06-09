@@ -12,11 +12,13 @@ local state = {
     prev = nil,
   },
   prev_seq = nil,
+  original_close_keymap_info = nil,
+  original_undo_keymap_info = nil,
 }
 
 local config = {
   keymaps = {
-    close = "ga",
+    close = "q",
     undo = "gr",
   },
   confirm_revert = true, -- Whether to confirm before reverting
@@ -28,8 +30,21 @@ local function foreach_buf(cb)
   end
 end
 
+local function check_keymap(key, mode)
+  mode = mode or 'n'
+  local keymaps = vim.api.nvim_buf_get_keymap(0, mode)
+  for _, map in pairs(keymaps) do
+    if map.lhs == key then
+      return map
+    end
+  end
+  return nil
+end
+
 function Diff.setup(opts)
   config = vim.tbl_deep_extend("force", vim.deepcopy(config), opts or {})
+  state.original_undo_keymap_info = check_keymap(config.keymaps.undo, "n")
+  state.original_close_keymap_info = check_keymap(config.keymaps.close, "n")
 end
 
 -- Diff current buffer with previous undo state
@@ -132,6 +147,24 @@ function Diff.close_undo_diff()
         vim.api.nvim_buf_delete(bufnr, { force = true })
       end
     end
+  end
+
+  -- restore original keymaps
+  if state.original_close_keymap_info then
+    local rhs = state.original_close_keymap_info.rhs or state.original_close_keymap_info.callback
+    rhs = type(rhs) == "function" and rhs or function() return rhs end
+    vim.keymap.set('n', state.original_close_keymap_info.lhs, rhs,
+      { buffer = state.buffers.curr, silent = true, desc = state.original_close_keymap_info.desc })
+  else
+    vim.keymap.del('n', config.keymaps.close, { buffer = state.buffers.curr })
+  end
+  if state.original_undo_keymap_info then
+    local rhs = state.original_undo_keymap_info.rhs or state.original_undo_keymap_info.callback
+    rhs = type(rhs) == "function" and rhs or function() return rhs end
+    vim.keymap.set('n', state.original_undo_keymap_info.lhs, rhs,
+      { buffer = state.buffers.curr, silent = true, desc = state.original_undo_keymap_info.desc })
+  else
+    vim.keymap.del('n', config.keymaps.undo, { buffer = state.buffers.curr })
   end
 end
 
